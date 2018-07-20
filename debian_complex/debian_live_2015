@@ -1,0 +1,153 @@
+核心包： debootstrap live-build live-boot live-config
+
+其中 live 相关三个软件可以通过 Git 来下载安装最新版本
+$ git clone https://anonscm.debian.org/git/debian-live/live-build.git
+$ git clone https://anonscm.debian.org/git/debian-live/live-boot.git
+$ git clone https://anonscm.debian.org/git/debian-live/live-config.git
+$ cd live-boot && make install && cd ../live-config && make install && cd ../live-build && make install && cd ..
+
+//创建工作目录并进入，复制示例配置文件到auto下
+# mkdir live/auto -p && cd live && cp /usr/sharre/doc/live-build/examples/auto/* auto/
+
+//编辑auto/config，添加自定义选项
+
+#!/bin/sh
+set -e
+lb config noauto \
+        --architectures amd64 \
+        --mirror-bootstrap http://mirrors.163.com/debian/ \
+        --mirror-binary http://mirrors.163.com/debian/ \
+        --mirror-chroot-security http://mirrors.163.com/debian-security/ \
+        --mirror-binary-security http://mirrors.163.com/debian-security/ \
+        --mirror-debian-installer http://mirrors.163.com/debian/ \
+        --apt-indices false \
+        --debian-installer live \
+        --bootappend-live "boot=live components username=qomo hostname=qomo-live locales=zh_CN.UTF-8 \
+        keyboard-layouts=zh" \
+        --iso-publisher "QomoLinux ; http://www.linuxren.org ; qomo-live@qomo.com" \
+        --iso-volume "qomo" \
+        "${@}"
+
+
+//执行 lb config ，这将自动在当前目录下生成 config 文件夹，这里执行的是auto/config里的选项，注意结果是否成功
+$ lb config
+
+Chapter 7
+// Live 系统的配置信息由Build和Boot两部分组成，其中Build部分是在生成系统的时候就已经完成的，而Boot选项则是在 Live 系统启动时才会生效的部分。
+Build 阶段的配置选项都在上述的 auto/config 文件里
+Boot 阶段的配置还可以细分为 lb-boot 控制部分（在启动前期）和 live-config 控制部分（启动后）
+Build 的相关配置选项的描述在lb config 的帮助文件中可以找到，而 Boot 相关描述则还存在于 lb boot 中
+
+//Build 阶段的工作
+在Build 过程中，不同的自定义选项生效在不同的时期。其中第一小阶段就是初始化引导（bootstrap），通过在chroot目录里填充各种基本包来生成一个Debian系统的骨干。然后就是chroot阶段了，这会将配置文件中列出的各种包及其它东西整合进去而生成一个完整的系统。大部分的自定义配置会在这步完成。最后的阶段是通过chroor目录并整合进installer 及其它附加于文件系统之外的东西生成可启动的二进制镜像文件。
+
+//完善lb config的配置
+虽然通过lb config命令已经在config文件夹下生成了最基本的配置信息，但若想达成一个自定义系统的目标，还需要在其子目录下添加相应的配置文件。这些文件是替代冗长的配置信息在建立系统时生效或是被直接拷贝到生成的文件系统中取决于它们所在的子目录。你可以加入需要的软件包列表，自定义文件，或是在生成系统及启动系统生效的配置文件，这极大的提升了你对代码控制的灵活性。
+
+//定制包安装
+最基本的定制就是自己决定要在Live系统中安装哪些软件包，这部分将指导你通过各种构建选项来定义安装包。宏观的选项包括确定版本和源目录。这里你最好选择一个离你最近的服务器去下载相关包，也可以添加自己的软件库。你可以在此定义软件包列表，包括软件包组如桌面环境和语言环境，这会自动解决依赖问题安装相应的包。你可以选择使用apt或者aptitude作为包管理软件，同时可以决定是否使用代理，不安装自动推荐的包去节省空间，更甚可以选择安装包的版本。
+
+Chapter 8
+//获取包的来源
+指定系统源的主版本，通过以下命令，默认是最新的 Debian 版本，一般不需要指定
+$ lb config --distribution jessie
+同时还可以确定使用哪个分支，如 main 是默认的，包含了Debian的软件包，你还可以为之添加更多内容
+lb config --archive-areas "main contrib non-free"
+还有不推荐的 --mode 选项
+
+//选择镜像源
+若要在Build 阶段使用本地源，那么设置以下两个选项就足够了
+$ lb config --mirror-bootstrap http://localhost/debian/ \
+                   --mirror-chroot-security http://localhost/debian-security/ \
+Note : 有关 --mirror-chroot 的设置，默认与 --mirror-bootstrap 相同，所以此处不用再写
+
+运行Live系统时安装的额外软件包通过 --mirror-binary* 控制部署在源码镜像上，默认使用的 http.debian.net 会自动根据你的地理位置来选择离你最近的镜像源上，或者设置成自己的源
+$ lb config --mirror-binary http://localhost/debian/ \
+                   --mirror-binary-security http://localhost/debian/ \
+                   --mirror-binary-backports http://localhost/debian-backports/ \
+
+额外的软件仓库
+同--mirror-*选项一样，你可以创建 config/archives/your-repository.list.{chroot,binary}
+但与此同时你要创建密钥文件 config/archives/your-repository.key.{chroot,binary}
+例 config/archives/live.list.chroot 可以让你在创建新 Live 镜像时安装仓库里的软件：
+deb http://debian-live.alioth.debian.org jessie-snapshots main contrib nono-free
+而 config/arhivese/live.list.binary 则会添加到你的 Live 系统的 /etc/apt/sources.list/ 目录下
+你还可以添加APT相关配置在 config/includes.chroot/etc/apt/preferences ，里面的内容会自动生成在 Live系统的 /etc/apt/preferences.d/ 目录下
+
+选择要安装的软件包
+建立软件包列表文件是一种十分简单有效的选择需要安装软件的方法
+将软件包组添加进你的系统，所有的软件包组都是以 task- 开关的包，你可以通过下面的命令来确定可用的 task 包
+$ apt-cache search --names-only ^task- | tee taskball
+此时你的当前目录下有一个 taskball 文件列表，方便你从中选出需要的包
+例，将 KDE 桌面环境设置为 Live 系统的桌面环境
+$ echo task-kde-desktop > config/package-lists/desktop.list.chroot
+如何建立本地包列表
+所有的软件包列表文件都保存在 config/package-lists/ 目录下，你可以将软件包组、单独的软件包或者二者同时放进列表中，由于可以创建多个列表文件，所以对于模块化设计来说十分方便。例如你可以把只适用于一种桌面的包写进一个列表，再将适配其各种它环境的包生成另一个文件。这样可以减小你的工作量，方便生成不同的 Live 系统。
+后缀名 .chroot 和 .binary 的区别就在于包是只安装于 Live 系统中还是要拷贝 deb 包到镜像里。
+还可以通过命令来生成包列表和在列表文件中添加条件语句，略
+
+Chapter 9
+确定 Live 系统和安装系统中包含的软件包
+后缀为 .list.chroot_live 和 .list.chroot_install 分别控制只在于 Live 系统中的软件包，或同时在于 Live 系统和已安装系统中的包。如果你在 lb config 阶段加上了 --debian-installer live 选项，这可以帮助你在安装阶段移除不需要的包。
+
+桌面环境和语言的包组
+桌面环境和语言的包组是在创建系统时就已经决定的，而不是在启动 Live 系统时，所以要将你的目标包组添加进列表中，当然你可以在里面添加多种选项来供用户选择，但这并不是我们想要的。
+如果你想添加有关语言选项，可以在配置文件中指定出来，如 KDE 下的简体中文支持（可在 taskball 中找到）
+$ lb config 
+$ echo "task-kde-desktop task-laptop" >> config/package-lists/my.list.chroot
+$ echo "task-chinese-s task-chinese-s-desktop task-chinese-s-kde-chinese" >> config/package-lists/my.list.chroot
+
+安装修改过的或第三方包
+下面提供两种方法，使用 packages.chroot 或使用自定义的软件仓库
+
+使用 packages.chroot 安装非官方包相对来说比较简单，你只需要将包放入 config/packages.chroot/ 目录下，并不用进行任何配置
+但注意。这种方法有以下严重缺点：
+        它不能通过 APT 来安装
+        你必须把所有适当的包（如依赖？）都放置在 config/packages.chroot/ 目录下
+        这些包不适于在 Live 系统启动时进行配置
+
+使用用户定制的软件仓库的好处在于重复使用或升级这些包十分的方便，lb build 命令会自动安装更高版本的包，若想安装改进的包，请注意将你的软件包的版本号设置的高于官方默认的版本。
+
+配置 APT 选项
+下面介绍常用的的相关项目
+        [--apt apt|aptitude]        选择使用哪种包管理工具，默认 APT
+        [--apt-indices true|false]        是否在 Live 系统中保留 APT 缓存文件，默认 true，建议为 false
+        [--apt-recommends true|false]        是否安装自动推荐的软件包，我讨厌这个，所以 false
+        [--apt-options OPTION|"OPTIONS"]        这个，自己去看 APT的帮助文档
+最后，有关 APT 的 preferences 文件可以先看 ATP 的 apt_preferences(5) 帮助文档
+
+自定义的内容
+包含进 Live 系统的文件
+config/includes.chroot/ 目录相当于新系统的根目录，只要将想要封装进系统的文件放置进去就可以了，如想将 shadowsocks 的示例配置文件加入进去，只需要
+$ mkdir config/includes.chroot/etc/shadowsocks/ -p
+$ cp /etc/shaodowsocks/config.json confgi/inlcudes.chroot/etc/shadowsocks/
+当然，如果新安装的软件中有相应的目录文件的话，会覆盖掉原来的文件
+
+示例二进制文件
+把示例的视频、音乐等文件或目录拷贝到 config/includes.binary/ 目录下，会在用户的 Home 目录下默认生成。
+
+Chapter 10
+定义 Live 系统启动时的相关配置选项
+$ lb config --bootappend-live "boot=live components username=qomo hostname=qomo-live locales=zh_CN.UTF-8 keyboard-layouts=zh" \
+                   --debian-installer live \
+$ echo debian-installer-launcher >> config/package-lists/my.list.chroot
+
+
+
+
+在编辑 auto/config 文件时，一定要注意，如果命令写在多行，每行的行末要加上“\”符号。
+基本的步骤：
+1、编辑 auto/config
+2、填充 config/ 下的配置文件
+3、执行 lb build 生成 iso ，测试。
+
+
+
+
+
+
+
+
+
+
+
