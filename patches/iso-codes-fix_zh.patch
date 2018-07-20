@@ -1,0 +1,58 @@
+diff -Naru iso-codes-3.70/ChangeLog iso-codes-3.71/ChangeLog
+--- iso-codes-3.70/ChangeLog	2016-08-29 23:12:01.000000000 +0800
++++ iso-codes-3.71/ChangeLog	2017-03-24 10:27:58.779903287 +0800
+@@ -1,3 +1,12 @@
++iso-codes 3.71
++Jia Chao <jiachao@redflag-linux.com>
++Fri, 24 Mar 2017
++
++  [ ISO 3166-1 ]
++  * Fix Taiwan's official name in zh_TW
++  * Reconfirm & fix Hong Kong,Macao official name in zh_HK
++
++
+ iso-codes 3.70
+ --------------
+ Dr. Tobias Quathamer <toddy@debian.org>
+diff -Naru iso-codes-3.70/iso_3166-1/zh_HK.po iso-codes-3.71/iso_3166-1/zh_HK.po
+--- iso-codes-3.70/iso_3166-1/zh_HK.po	2016-08-29 23:16:47.000000000 +0800
++++ iso-codes-3.71/iso_3166-1/zh_HK.po	2017-03-24 10:51:29.656816954 +0800
+@@ -671,7 +671,7 @@
+ 
+ #. Official name for HKG
+ msgid "Hong Kong Special Administrative Region of China"
+-msgstr "香港特別行政區"
++msgstr "中國香港特別行政區"
+ 
+ #. Name for HMD
+ msgid "Heard Island and McDonald Islands"
+@@ -932,7 +932,7 @@
+ 
+ #. Official name for MAC
+ msgid "Macao Special Administrative Region of China"
+-msgstr "澳門特別行政區"
++msgstr "中國澳門特別行政區"
+ 
+ #. Name for MAF
+ msgid "Saint Martin (French part)"
+@@ -1573,7 +1573,7 @@
+ 
+ #. Name for TWN, Official name for TWN
+ msgid "Taiwan, Province of China"
+-msgstr "中華民國"
++msgstr "中國台灣省"
+ 
+ #. Common name for TWN
+ msgid "Taiwan"
+diff -Naru iso-codes-3.70/iso_3166-1/zh_TW.po iso-codes-3.71/iso_3166-1/zh_TW.po
+--- iso-codes-3.70/iso_3166-1/zh_TW.po	2016-08-29 23:16:45.000000000 +0800
++++ iso-codes-3.71/iso_3166-1/zh_TW.po	2017-03-24 10:16:53.169996638 +0800
+@@ -1548,7 +1548,7 @@
+ 
+ #. Name for TWN, Official name for TWN
+ msgid "Taiwan, Province of China"
+-msgstr "中華民國"
++msgstr "中國臺灣省"
+ 
+ #. Common name for TWN
+ msgid "Taiwan"
